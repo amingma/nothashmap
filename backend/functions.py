@@ -1,10 +1,10 @@
-def location_exists(collection, longitude, latitude, max_dist):
+def location_exists(collection, coords, max_dist):
     return collection.find_one({
         "location": {
             "$near": {
                 "$geometry": {
                     "type": "Point",
-                    "coordinates": [longitude, latitude]
+                    "coordinates": coords
                 },
                 "$maxDistance": max_dist
             }
