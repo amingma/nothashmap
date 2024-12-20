@@ -14,14 +14,9 @@ client = MongoClient(connection_string)
 db = client["route_planner"]
 
 nodes_collection = db["road_nodes"]
+nodes_collection.create_index({"location": "2dsphere"})
 edges_collection = db["road_edges"]
 routes_collection = db["routes"]
-# node_data = {
-#     "node_id": 123,
-#     "latitude": 41.8781,
-#     "longitude": -87.6298
-# }
-# nodes_collection.insert_one(node_data)
 
 geolocator = Nominatim(user_agent="geoapi")
 
@@ -31,11 +26,26 @@ def root():
 
 @app.post("/add-node")
 def add_node(node: NodeInput):
-    location = geolocator.geocode(node.name)
-    data = {
-        "latitude": location.latitude,
-        "longitude": location.longitude
-    }
-    nodes_collection.insert_one(data)
-    return {"message": "Location successfully added"}
+    data = geolocator.geocode(node.name)
+    location_exists = nodes_collection.find_one({
+        "location": {
+            "$near": {
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": [data.longitude, data.latitude]
+                },
+                "$maxDistance": 20
+            }
+        }
+    })
+    if location_exists:
+        return {"message": "Location already exists"}
+    else: 
+        nodes_collection.insert_one({
+            "location": {
+                "type": "Point",
+                "coordinates": [data.longitude, data.latitude]
+            }
+        })
+        return {"message": "Location successfully added"}
 
