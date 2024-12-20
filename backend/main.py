@@ -4,6 +4,7 @@ from pymongo import MongoClient
 import os
 from geopy.geocoders import Nominatim
 from models import NodeInput
+from functions import location_exists
 
 load_dotenv(find_dotenv())
 password = os.environ.get("MONGODB_PASS")
@@ -27,18 +28,7 @@ def root():
 @app.post("/add-node")
 def add_node(node: NodeInput):
     data = geolocator.geocode(node.name)
-    location_exists = nodes_collection.find_one({
-        "location": {
-            "$near": {
-                "$geometry": {
-                    "type": "Point",
-                    "coordinates": [data.longitude, data.latitude]
-                },
-                "$maxDistance": 20
-            }
-        }
-    })
-    if location_exists:
+    if location_exists(nodes_collection, data.longitude, data.latitude, 20):
         return {"message": "Location already exists"}
     else: 
         nodes_collection.insert_one({
