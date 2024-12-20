@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Path
+from fastapi import FastAPI, Path, Response
 from dotenv import load_dotenv, find_dotenv
 from pymongo import MongoClient
 import os
@@ -26,9 +26,14 @@ def root():
     return {"message": "Hello World"}
 
 @app.post("/add-node")
-def add_node(node: NodeInput):
+def add_node(node: NodeInput, response: Response):
     data = geolocator.geocode(node.name)
-    if location_exists(nodes_collection, data.longitude, data.latitude, 20):
+    try:
+        coords = [data.longitude, data.latitude]
+    except:
+        response.status_code = 400
+        return {"message": "Invalid query"}
+    if location_exists(nodes_collection, coords, 20):
         return {"message": "Location already exists"}
     else: 
         nodes_collection.insert_one({
